@@ -9,38 +9,150 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedQueueRouteImport } from './routes/_authenticated/queue'
+import { Route as AuthenticatedOpportunitiesRouteImport } from './routes/_authenticated/opportunities'
+import { Route as AuthenticatedLogsRouteImport } from './routes/_authenticated/logs'
+import { Route as AuthenticatedEventsRouteImport } from './routes/_authenticated/events'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCollectorsRouteImport } from './routes/_authenticated/collectors'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedQueueRoute = AuthenticatedQueueRouteImport.update({
+  id: '/queue',
+  path: '/queue',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOpportunitiesRoute =
+  AuthenticatedOpportunitiesRouteImport.update({
+    id: '/opportunities',
+    path: '/opportunities',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedLogsRoute = AuthenticatedLogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedEventsRoute = AuthenticatedEventsRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCollectorsRoute = AuthenticatedCollectorsRouteImport.update({
+  id: '/collectors',
+  path: '/collectors',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/collectors': typeof AuthenticatedCollectorsRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/events': typeof AuthenticatedEventsRoute
+  '/logs': typeof AuthenticatedLogsRoute
+  '/opportunities': typeof AuthenticatedOpportunitiesRoute
+  '/queue': typeof AuthenticatedQueueRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/collectors': typeof AuthenticatedCollectorsRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/events': typeof AuthenticatedEventsRoute
+  '/logs': typeof AuthenticatedLogsRoute
+  '/opportunities': typeof AuthenticatedOpportunitiesRoute
+  '/queue': typeof AuthenticatedQueueRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/collectors': typeof AuthenticatedCollectorsRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/events': typeof AuthenticatedEventsRoute
+  '/_authenticated/logs': typeof AuthenticatedLogsRoute
+  '/_authenticated/opportunities': typeof AuthenticatedOpportunitiesRoute
+  '/_authenticated/queue': typeof AuthenticatedQueueRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/collectors'
+    | '/dashboard'
+    | '/events'
+    | '/logs'
+    | '/opportunities'
+    | '/queue'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/collectors'
+    | '/dashboard'
+    | '/events'
+    | '/logs'
+    | '/opportunities'
+    | '/queue'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/collectors'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/events'
+    | '/_authenticated/logs'
+    | '/_authenticated/opportunities'
+    | '/_authenticated/queue'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +160,76 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/queue': {
+      id: '/_authenticated/queue'
+      path: '/queue'
+      fullPath: '/queue'
+      preLoaderRoute: typeof AuthenticatedQueueRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/opportunities': {
+      id: '/_authenticated/opportunities'
+      path: '/opportunities'
+      fullPath: '/opportunities'
+      preLoaderRoute: typeof AuthenticatedOpportunitiesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/logs': {
+      id: '/_authenticated/logs'
+      path: '/logs'
+      fullPath: '/logs'
+      preLoaderRoute: typeof AuthenticatedLogsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/events': {
+      id: '/_authenticated/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof AuthenticatedEventsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/collectors': {
+      id: '/_authenticated/collectors'
+      path: '/collectors'
+      fullPath: '/collectors'
+      preLoaderRoute: typeof AuthenticatedCollectorsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCollectorsRoute: typeof AuthenticatedCollectorsRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedEventsRoute: typeof AuthenticatedEventsRoute
+  AuthenticatedLogsRoute: typeof AuthenticatedLogsRoute
+  AuthenticatedOpportunitiesRoute: typeof AuthenticatedOpportunitiesRoute
+  AuthenticatedQueueRoute: typeof AuthenticatedQueueRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCollectorsRoute: AuthenticatedCollectorsRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedEventsRoute: AuthenticatedEventsRoute,
+  AuthenticatedLogsRoute: AuthenticatedLogsRoute,
+  AuthenticatedOpportunitiesRoute: AuthenticatedOpportunitiesRoute,
+  AuthenticatedQueueRoute: AuthenticatedQueueRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

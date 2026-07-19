@@ -129,9 +129,9 @@ function CollectorDialog({ collector }: { collector?: Collector }) {
 
   const save = useMutation({
     mutationFn: async () => {
-      let parsedConfig: Record<string, unknown> = {};
+      let parsedConfig: unknown = {};
       try { parsedConfig = JSON.parse(config); } catch { throw new Error("Invalid JSON in config"); }
-      const payload = { name, platform, schedule, enabled, config: parsedConfig };
+      const payload = { name, platform, schedule, enabled, config: parsedConfig as never };
       if (collector) {
         const { error } = await supabase.from("collectors").update(payload).eq("id", collector.id);
         if (error) throw error;
