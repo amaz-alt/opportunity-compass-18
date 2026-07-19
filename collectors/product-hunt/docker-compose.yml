@@ -1,0 +1,20 @@
+services:
+  producthunt-collector:
+    build: .
+    image: signal/collector-producthunt:latest
+    container_name: signal-collector-producthunt
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
