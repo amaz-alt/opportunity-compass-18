@@ -4,11 +4,21 @@ import { logger } from './logger.js';
 import { collector } from './collector.js';
 import { config } from './config.js';
 import { ensureCollector } from './db.js';
+import { runTest } from './test.js';
 
 export function buildServer() {
   const app = express();
   app.use(pinoHttp({ logger }));
   app.use(express.json());
+
+  // Permissive CORS so the Lovable admin dashboard can call the VPS collector.
+  app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    next();
+  });
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', service: 'producthunt-collector', uptime: process.uptime() });
