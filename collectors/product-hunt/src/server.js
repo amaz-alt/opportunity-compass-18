@@ -4,11 +4,21 @@ import { logger } from './logger.js';
 import { collector } from './collector.js';
 import { config } from './config.js';
 import { ensureCollector } from './db.js';
+import { runTest } from './test.js';
 
 export function buildServer() {
   const app = express();
   app.use(pinoHttp({ logger }));
   app.use(express.json());
+
+  // Permissive CORS so the Lovable admin dashboard can call the VPS collector.
+  app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    next();
+  });
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', service: 'producthunt-collector', uptime: process.uptime() });
@@ -56,6 +66,21 @@ export function buildServer() {
       res.json(r);
     } catch (err) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/collector/test', async (_req, res) => {
+    try {
+      const result = await runTest();
+      res.status(result.ok ? 200 : 500).json(result);
+    } catch (err) {
+      logger.error({ err }, 'Test endpoint crashed');
+      res.status(500).json({
+        ok: false,
+        error: 'unhandled_exception',
+        message: err.message,
+        stack: err.stack?.split('\n').slice(0, 8),
+      });
     }
   });
 
