@@ -69,6 +69,21 @@ export function buildServer() {
     }
   });
 
+  app.post('/collector/test', async (_req, res) => {
+    try {
+      const result = await runTest();
+      res.status(result.ok ? 200 : 500).json(result);
+    } catch (err) {
+      logger.error({ err }, 'Test endpoint crashed');
+      res.status(500).json({
+        ok: false,
+        error: 'unhandled_exception',
+        message: err.message,
+        stack: err.stack?.split('\n').slice(0, 8),
+      });
+    }
+  });
+
   app.use((err, _req, res, _next) => {
     logger.error({ err }, 'Unhandled request error');
     res.status(500).json({ error: 'internal_error' });
