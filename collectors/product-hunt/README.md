@@ -31,6 +31,7 @@ everything else.
 | GET    | `/status`           | Collector row + runtime stats    |
 | POST   | `/collector/start`  | Start polling loop               |
 | POST   | `/collector/stop`   | Stop polling loop (graceful)     |
+| POST   | `/collector/test`   | Fetch ONE post, normalize, insert into `raw_events`, return diagnostics. Does NOT trigger the AI pipeline. |
 
 ## Configuration
 
