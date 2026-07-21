@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Activity, Brain, Database, Radio, ArrowUpRight } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -33,6 +34,7 @@ function Landing() {
           <a href="#philosophy" className="hidden md:inline text-xs uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground transition-colors">Philosophy</a>
           <a href="#pipeline" className="hidden md:inline text-xs uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground transition-colors">Pipeline</a>
           <a href="#sources" className="hidden md:inline text-xs uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground transition-colors">Sources</a>
+          <ThemeToggle />
           <Link to="/auth" className="text-sm rounded-sm border border-border bg-card/40 backdrop-blur px-4 py-2 hover:border-primary/50 hover:text-primary transition-colors">
             Sign in
           </Link>

@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, redirect, Link, useRouterState, useNavigate } 
 import { supabase } from "@/integrations/supabase/client";
 import { Activity, Database, Brain, Radio, Sparkles, ScrollText, LogOut, FlaskConical } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -69,7 +70,10 @@ function AuthedLayout() {
           })}
         </nav>
         <div className="p-3 border-t border-sidebar-border">
-          <div className="text-xs text-muted-foreground mb-2 truncate px-2">{user?.email}</div>
+          <div className="flex items-center justify-between gap-2 mb-2 px-2">
+            <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
+            <ThemeToggle className="h-7 w-7 shrink-0" />
+          </div>
           <Button variant="ghost" size="sm" className="w-full justify-start" onClick={signOut}>
             <LogOut className="h-4 w-4 mr-2" /> Sign out
           </Button>
