@@ -100,6 +100,52 @@
   --foreground: oklch(0.94 0.008 70);
 }
 
+/* Day mode — porcelain & orchid */
+html:not(.dark) {
+  --background: oklch(0.985 0.005 70);
+  --foreground: oklch(0.2 0.02 305);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.02 305);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.02 305);
+
+  --primary: oklch(0.5 0.14 322);
+  --primary-foreground: oklch(0.985 0.005 70);
+
+  --secondary: oklch(0.95 0.01 305);
+  --secondary-foreground: oklch(0.2 0.02 305);
+
+  --muted: oklch(0.95 0.008 305);
+  --muted-foreground: oklch(0.45 0.02 305);
+
+  --accent: oklch(0.55 0.08 30);
+  --accent-foreground: oklch(0.985 0.005 70);
+
+  --destructive: oklch(0.55 0.22 22);
+  --destructive-foreground: oklch(0.985 0 0);
+
+  --success: oklch(0.55 0.12 155);
+  --success-foreground: oklch(0.985 0.005 70);
+
+  --warning: oklch(0.6 0.14 65);
+  --warning-foreground: oklch(0.14 0.014 305);
+
+  --border: oklch(0.9 0.01 305);
+  --input: oklch(0.92 0.01 305);
+  --ring: oklch(0.5 0.14 322);
+
+  --sidebar: oklch(0.97 0.008 305);
+  --sidebar-foreground: oklch(0.25 0.02 305);
+  --sidebar-primary: oklch(0.5 0.14 322);
+  --sidebar-primary-foreground: oklch(0.985 0.005 70);
+  --sidebar-accent: oklch(0.92 0.015 305);
+  --sidebar-accent-foreground: oklch(0.2 0.02 305);
+  --sidebar-border: oklch(0.9 0.01 305);
+  --sidebar-ring: oklch(0.5 0.14 322);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
