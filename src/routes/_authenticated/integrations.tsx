@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,9 @@ import {
   updateProductHuntSettings,
   testProductHuntConnection,
   runProductHuntSync,
+  runProductHuntAutomationNow,
 } from "@/lib/producthunt.functions";
+import { updateOpportunityProfile } from "@/lib/opportunity-profile.functions";
 import { CheckCircle2, XCircle, Loader2, PlayCircle, Plug, RefreshCw, KeyRound } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -28,6 +31,8 @@ function IntegrationsPage() {
   const updateSettings = useServerFn(updateProductHuntSettings);
   const testConn = useServerFn(testProductHuntConnection);
   const runSync = useServerFn(runProductHuntSync);
+  const runAutomation = useServerFn(runProductHuntAutomationNow);
+  const saveProfile = useServerFn(updateOpportunityProfile);
 
   const { data, isLoading } = useQuery({
     queryKey: ["ph-integration"],
@@ -39,6 +44,9 @@ function IntegrationsPage() {
   const [postsPerSync, setPosts] = useState(20);
   const [commentsPerPost, setComments] = useState(25);
   const [enabled, setEnabled] = useState(false);
+  const [target, setTarget] = useState("");
+  const [minimumScore, setMinimumScore] = useState(65);
+  const [autoProcessLimit, setAutoProcessLimit] = useState(50);
 
   useEffect(() => {
     if (!data) return;
@@ -46,6 +54,9 @@ function IntegrationsPage() {
     setPosts(data.config.postsPerSync ?? 20);
     setComments(data.config.commentsPerPost ?? 25);
     setEnabled(Boolean(data.collector.enabled));
+    setTarget(data.opportunityProfile.target ?? "");
+    setMinimumScore(data.opportunityProfile.minimumScore ?? 65);
+    setAutoProcessLimit(data.opportunityProfile.autoProcessLimit ?? 50);
   }, [data]);
 
   const save = useMutation({
@@ -70,6 +81,21 @@ function IntegrationsPage() {
       else toast.error(res.error ?? "Sync failed");
       qc.invalidateQueries({ queryKey: ["ph-integration"] });
       qc.invalidateQueries({ queryKey: ["ph-logs"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const profile = useMutation({
+    mutationFn: () => saveProfile({ data: { target, minimumScore, autoProcessLimit } }),
+    onSuccess: () => { toast.success("Opportunity brief saved"); qc.invalidateQueries({ queryKey: ["ph-integration"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const automation = useMutation({
+    mutationFn: () => runAutomation(),
+    onSuccess: (res) => {
+      toast.success(`Full cycle: ${res.sync.postsInserted + res.sync.commentsInserted} raw events, ${res.ai.opportunities} opportunities`);
+      qc.invalidateQueries();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -145,6 +171,38 @@ function IntegrationsPage() {
               <div className="text-xs text-muted-foreground">Marks the collector active in the framework. Sync still runs on demand via "Run Sync Now".</div>
             </div>
             <Switch checked={enabled} onCheckedChange={setEnabled} />
+          </div>
+
+          <div className="rounded-md border border-border p-4 space-y-4">
+            <div>
+              <div className="text-sm font-medium">Opportunity brief</div>
+              <div className="text-xs text-muted-foreground">AI only saves opportunities that match this target and meet the score threshold.</div>
+            </div>
+            <Textarea
+              value={target}
+              onChange={(e) => setTarget(e.target.value)}
+              rows={5}
+              placeholder="Example: Find B2B SaaS ideas for small agencies: painful manual workflows, expensive tools people complain about, buying intent, integration gaps, or underserved niches."
+            />
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="min-score">Minimum opportunity score</Label>
+                <Input id="min-score" type="number" min={0} max={100} value={minimumScore} onChange={(e) => setMinimumScore(Number(e.target.value))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="auto-limit">Events processed per cycle</Label>
+                <Input id="auto-limit" type="number" min={1} max={50} value={autoProcessLimit} onChange={(e) => setAutoProcessLimit(Number(e.target.value))} />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={() => profile.mutate()} disabled={profile.isPending}>
+                {profile.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save opportunity brief
+              </Button>
+              <Button onClick={() => automation.mutate()} disabled={automation.isPending || !data?.tokenPresent}>
+                {automation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                Run full cycle now
+              </Button>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
