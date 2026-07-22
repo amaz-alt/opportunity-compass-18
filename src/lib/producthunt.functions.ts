@@ -7,8 +7,9 @@ const PLATFORM = "producthunt";
 const COLLECTOR_NAME = "Product Hunt";
 const PH_ENDPOINT = "https://api.producthunt.com/v2/api/graphql";
 
-type SupabaseCtx = { supabase: Awaited<ReturnType<typeof getCtx>>["supabase"]; userId: string };
-async function getCtx(): Promise<never> { throw new Error("type helper only"); }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SupabaseCtx = { supabase: any; userId: string };
+
 
 function sha256(...parts: string[]) {
   return crypto.createHash("sha256").update(parts.join("|")).digest("hex");
