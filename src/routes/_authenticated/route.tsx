@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect, Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { Activity, Database, Brain, Radio, Sparkles, ScrollText, LogOut, FlaskConical } from "lucide-react";
+import { Activity, Database, Brain, Radio, Sparkles, ScrollText, LogOut, Plug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
@@ -21,7 +21,7 @@ const nav = [
   { to: "/events", label: "Raw events", icon: Database },
   { to: "/queue", label: "AI queue", icon: Brain },
   { to: "/opportunities", label: "Opportunities", icon: Sparkles },
-  { to: "/test", label: "Test mode", icon: FlaskConical },
+  { to: "/integrations", label: "Integrations", icon: Plug },
   { to: "/logs", label: "Logs", icon: ScrollText },
 ] as const;
 
