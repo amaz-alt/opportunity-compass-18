@@ -1,16 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
+import { Sparkles, Loader2 } from "lucide-react";
 import type { AiJob } from "@/lib/api";
+import { processAiQueue } from "@/lib/ai.functions";
 
 export const Route = createFileRoute("/_authenticated/queue")({ component: QueuePage });
 
 function QueuePage() {
+  const qc = useQueryClient();
+  const runFn = useServerFn(processAiQueue);
+
   const { data: jobs } = useQuery({
     queryKey: ["ai_jobs"],
     queryFn: async () => {
@@ -19,6 +27,25 @@ function QueuePage() {
       return data as AiJob[];
     },
     refetchInterval: 5_000,
+  });
+
+  const { data: pendingCount } = useQuery({
+    queryKey: ["raw_events", "pending-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase.from("raw_events").select("*", { count: "exact", head: true }).eq("processed", false);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    refetchInterval: 5_000,
+  });
+
+  const run = useMutation({
+    mutationFn: (limit: number) => runFn({ data: { limit } }),
+    onSuccess: (r) => {
+      toast.success(`Processed ${r.processed} · ${r.opportunities} opportunities · ${r.skipped} skipped · ${r.failed} failed`);
+      qc.invalidateQueries();
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const groups = {
@@ -31,6 +58,18 @@ function QueuePage() {
   return (
     <div className="p-8">
       <PageHeader title="AI processing queue" description="ai_jobs table — one job per raw event awaiting or having gone through AI extraction." />
+      <div className="flex items-center gap-3 mb-6">
+        <Button onClick={() => run.mutate(10)} disabled={run.isPending || (pendingCount ?? 0) === 0}>
+          {run.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+          Process next 10
+        </Button>
+        <Button variant="outline" onClick={() => run.mutate(50)} disabled={run.isPending || (pendingCount ?? 0) === 0}>
+          Process next 50
+        </Button>
+        <div className="text-sm text-muted-foreground">
+          {pendingCount ?? 0} unprocessed raw events waiting
+        </div>
+      </div>
       <div className="grid grid-cols-4 gap-4 mb-6">
         {Object.entries(groups).map(([k, v]) => (
           <Card key={k} className="border-border">
