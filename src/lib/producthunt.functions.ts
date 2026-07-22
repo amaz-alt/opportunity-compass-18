@@ -21,23 +21,6 @@ async function assertAdmin({ supabase, userId }: SupabaseCtx) {
   if (!data) throw new Error("Forbidden: admin role required");
 }
 
-async function ensureCollector({ supabase }: SupabaseCtx) {
-  const { data: existing, error: selErr } = await supabase
-    .from("collectors").select("*").eq("platform", PLATFORM).maybeSingle();
-  if (selErr) throw new Error(selErr.message);
-  if (existing) return existing;
-  const { data, error } = await supabase.from("collectors").insert({
-    name: COLLECTOR_NAME, platform: PLATFORM, enabled: false,
-    config: DEFAULTS, schedule: null, status: "idle",
-  }).select("*").single();
-  if (error) throw new Error(error.message);
-  return data;
-}
-
-async function log(supabase: SupabaseCtx["supabase"], collectorId: string, level: "info"|"warn"|"error", message: string, metadata: Record<string, unknown> = {}) {
-  await supabase.from("collector_logs").insert({ collector_id: collectorId, level, message, metadata });
-}
-
 export const getProductHuntIntegration = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
