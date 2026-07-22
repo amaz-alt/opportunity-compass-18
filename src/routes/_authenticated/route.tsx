@@ -21,7 +21,7 @@ const nav = [
   { to: "/events", label: "Raw events", icon: Database },
   { to: "/queue", label: "AI queue", icon: Brain },
   { to: "/opportunities", label: "Opportunities", icon: Sparkles },
-  { to: "/test", label: "Test mode", icon: FlaskConical },
+  { to: "/integrations", label: "Integrations", icon: Plug },
   { to: "/logs", label: "Logs", icon: ScrollText },
 ] as const;
 
