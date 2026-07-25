@@ -221,16 +221,36 @@ function IntegrationsPage() {
 
           <div className="rounded-md border border-border p-4 space-y-4">
             <div>
-              <div className="text-sm font-medium">Opportunity brief</div>
-              <div className="text-xs text-muted-foreground">AI only saves opportunities that match this target and meet the score threshold.</div>
+              <div className="text-sm font-medium">Opportunity target</div>
+              <div className="text-xs text-muted-foreground">Saved per integration. The AI uses these as hard filters when evaluating events.</div>
             </div>
-            <Textarea
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-              rows={5}
-              placeholder="Example: Find B2B SaaS ideas for small agencies: painful manual workflows, expensive tools people complain about, buying intent, integration gaps, or underserved niches."
-            />
+            <div className="space-y-1.5">
+              <Label htmlFor="brief">Brief</Label>
+              <Textarea
+                id="brief"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+                rows={5}
+                placeholder="Example: B2B SaaS ideas for small agencies — painful manual workflows, expensive tools people complain about, buying intent, integration gaps, or underserved niches."
+              />
+            </div>
             <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="keywords">Keywords (comma-separated)</Label>
+                <Input id="keywords" value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="crm, invoicing, notion alternative" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="stages">Stages</Label>
+                <Input id="stages" value={stages} onChange={(e) => setStages(e.target.value)} placeholder="pre-seed, seed, indie hackers" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="deal-size">Deal size / budget</Label>
+                <Input id="deal-size" value={dealSize} onChange={(e) => setDealSize(e.target.value)} placeholder="$50-$500/mo SMB budgets" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="geography">Geography</Label>
+                <Input id="geography" value={geography} onChange={(e) => setGeography(e.target.value)} placeholder="US, EU, English-speaking markets" />
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="min-score">Minimum opportunity score</Label>
                 <Input id="min-score" type="number" min={0} max={100} value={minimumScore} onChange={(e) => setMinimumScore(Number(e.target.value))} />
@@ -242,14 +262,52 @@ function IntegrationsPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="secondary" onClick={() => profile.mutate()} disabled={profile.isPending}>
-                {profile.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save opportunity brief
+                {profile.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save opportunity target
               </Button>
-              <Button onClick={() => automation.mutate()} disabled={automation.isPending || !data?.tokenPresent}>
-                {automation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              <Button onClick={() => automation.mutate()} disabled={automation.isPending || latestRun?.status === "running" || !data?.tokenPresent}>
+                {automation.isPending || latestRun?.status === "running" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Zap className="h-4 w-4 mr-2" />}
                 Run full cycle now
               </Button>
+              <Button asChild variant="ghost">
+                <Link to="/history">View history</Link>
+              </Button>
             </div>
+
+            {latestRun && (
+              <div className="rounded-md border border-border/70 bg-muted/30 p-3 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={latestRun.status === "running" ? "default" : latestRun.status === "succeeded" ? "secondary" : "destructive"} className="capitalize">
+                      {latestRun.status}
+                    </Badge>
+                    {latestRun.status === "running" && latestRun.stage && (
+                      <span className="text-muted-foreground capitalize">stage: {latestRun.stage}</span>
+                    )}
+                    <span className="text-muted-foreground">
+                      {formatDistanceToNow(new Date(latestRun.started_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                  <div className="font-mono text-muted-foreground">
+                    synced {latestRun.events_synced} · processed {latestRun.events_processed} · opps {latestRun.opportunities_created}
+                  </div>
+                </div>
+                {latestRun.status === "running" && (
+                  <Progress
+                    value={
+                      latestRun.stage === "sync" ? 25 :
+                      latestRun.stage === "ai" && autoProcessLimit > 0
+                        ? 30 + Math.min(65, (latestRun.events_processed / autoProcessLimit) * 65)
+                        : 95
+                    }
+                  />
+                )}
+                {latestRun.error_message && (
+                  <div className="text-xs text-destructive break-all">{latestRun.error_message}</div>
+                )}
+              </div>
+            )}
           </div>
+
 
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => save.mutate()} disabled={save.isPending}>
