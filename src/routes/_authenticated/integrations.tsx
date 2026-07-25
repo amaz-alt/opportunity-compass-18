@@ -47,8 +47,20 @@ function IntegrationsPage() {
   const [commentsPerPost, setComments] = useState(25);
   const [enabled, setEnabled] = useState(false);
   const [target, setTarget] = useState("");
+  const [keywords, setKeywords] = useState("");
+  const [stages, setStages] = useState("");
+  const [dealSize, setDealSize] = useState("");
+  const [geography, setGeography] = useState("");
   const [minimumScore, setMinimumScore] = useState(65);
   const [autoProcessLimit, setAutoProcessLimit] = useState(50);
+
+  const collectorId = data?.collector.id;
+  const getProfile = useServerFn(getOpportunityProfile);
+  const { data: scopedProfile } = useQuery({
+    queryKey: ["opportunity-profile", collectorId],
+    enabled: Boolean(collectorId),
+    queryFn: () => getProfile({ data: { collectorId } }),
+  });
 
   useEffect(() => {
     if (!data) return;
@@ -56,10 +68,19 @@ function IntegrationsPage() {
     setPosts(data.config.postsPerSync ?? 20);
     setComments(data.config.commentsPerPost ?? 25);
     setEnabled(Boolean(data.collector.enabled));
-    setTarget(data.opportunityProfile.target ?? "");
-    setMinimumScore(data.opportunityProfile.minimumScore ?? 65);
-    setAutoProcessLimit(data.opportunityProfile.autoProcessLimit ?? 50);
   }, [data]);
+
+  useEffect(() => {
+    const p = scopedProfile ?? data?.opportunityProfile;
+    if (!p) return;
+    setTarget(p.target ?? "");
+    setKeywords(Array.isArray(p.keywords) ? p.keywords.join(", ") : "");
+    setStages(p.stages ?? "");
+    setDealSize(p.dealSize ?? "");
+    setGeography(p.geography ?? "");
+    setMinimumScore(p.minimumScore ?? 65);
+    setAutoProcessLimit(p.autoProcessLimit ?? 50);
+  }, [scopedProfile, data]);
 
   const save = useMutation({
     mutationFn: () => updateSettings({ data: { pollIntervalMinutes, postsPerSync, commentsPerPost, enabled } }),
@@ -88,8 +109,18 @@ function IntegrationsPage() {
   });
 
   const profile = useMutation({
-    mutationFn: () => saveProfile({ data: { target, minimumScore, autoProcessLimit } }),
-    onSuccess: () => { toast.success("Opportunity brief saved"); qc.invalidateQueries({ queryKey: ["ph-integration"] }); },
+    mutationFn: () => saveProfile({ data: {
+      collectorId,
+      target,
+      keywords: keywords.split(",").map(s => s.trim()).filter(Boolean),
+      stages, dealSize, geography,
+      minimumScore, autoProcessLimit,
+    } }),
+    onSuccess: () => {
+      toast.success("Opportunity target saved");
+      qc.invalidateQueries({ queryKey: ["opportunity-profile", collectorId] });
+      qc.invalidateQueries({ queryKey: ["ph-integration"] });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -101,6 +132,18 @@ function IntegrationsPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const getLatestRun = useServerFn(getLatestAutomationRun);
+  const { data: latestRun } = useQuery({
+    queryKey: ["latest-run", collectorId],
+    enabled: Boolean(collectorId),
+    queryFn: () => getLatestRun({ data: { collectorId } }),
+    refetchInterval: automation.isPending || latestRunIsActive() ? 1500 : 8000,
+  });
+  function latestRunIsActive() {
+    return latestRun?.status === "running";
+  }
+
 
   const { data: logs } = useQuery({
     queryKey: ["ph-logs", data?.collector.id],
