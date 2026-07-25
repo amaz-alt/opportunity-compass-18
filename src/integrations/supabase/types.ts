@@ -82,6 +82,68 @@ export type Database = {
         }
         Relationships: []
       }
+      automation_runs: {
+        Row: {
+          collector_id: string | null
+          completed_at: string | null
+          created_at: string
+          details: Json
+          error_message: string | null
+          errors: number
+          events_processed: number
+          events_synced: number
+          id: string
+          opportunities_created: number
+          stage: string | null
+          started_at: string
+          status: string
+          trigger: string
+          updated_at: string
+        }
+        Insert: {
+          collector_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          details?: Json
+          error_message?: string | null
+          errors?: number
+          events_processed?: number
+          events_synced?: number
+          id?: string
+          opportunities_created?: number
+          stage?: string | null
+          started_at?: string
+          status?: string
+          trigger?: string
+          updated_at?: string
+        }
+        Update: {
+          collector_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          details?: Json
+          error_message?: string | null
+          errors?: number
+          events_processed?: number
+          events_synced?: number
+          id?: string
+          opportunities_created?: number
+          stage?: string | null
+          started_at?: string
+          status?: string
+          trigger?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_runs_collector_id_fkey"
+            columns: ["collector_id"]
+            isOneToOne: false
+            referencedRelation: "collectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collector_logs: {
         Row: {
           collector_id: string | null
