@@ -16,6 +16,7 @@ import { Route as AuthenticatedQueueRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedOpportunitiesRouteImport } from './routes/_authenticated/opportunities'
 import { Route as AuthenticatedLogsRouteImport } from './routes/_authenticated/logs'
 import { Route as AuthenticatedIntegrationsRouteImport } from './routes/_authenticated/integrations'
+import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedEventsRouteImport } from './routes/_authenticated/events'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCollectorsRouteImport } from './routes/_authenticated/collectors'
@@ -56,6 +57,11 @@ const AuthenticatedIntegrationsRoute =
     path: '/integrations',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedEventsRoute = AuthenticatedEventsRouteImport.update({
   id: '/events',
   path: '/events',
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/collectors': typeof AuthenticatedCollectorsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/events': typeof AuthenticatedEventsRoute
+  '/history': typeof AuthenticatedHistoryRoute
   '/integrations': typeof AuthenticatedIntegrationsRoute
   '/logs': typeof AuthenticatedLogsRoute
   '/opportunities': typeof AuthenticatedOpportunitiesRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/collectors': typeof AuthenticatedCollectorsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/events': typeof AuthenticatedEventsRoute
+  '/history': typeof AuthenticatedHistoryRoute
   '/integrations': typeof AuthenticatedIntegrationsRoute
   '/logs': typeof AuthenticatedLogsRoute
   '/opportunities': typeof AuthenticatedOpportunitiesRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/_authenticated/collectors': typeof AuthenticatedCollectorsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/events': typeof AuthenticatedEventsRoute
+  '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/integrations': typeof AuthenticatedIntegrationsRoute
   '/_authenticated/logs': typeof AuthenticatedLogsRoute
   '/_authenticated/opportunities': typeof AuthenticatedOpportunitiesRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/collectors'
     | '/dashboard'
     | '/events'
+    | '/history'
     | '/integrations'
     | '/logs'
     | '/opportunities'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/collectors'
     | '/dashboard'
     | '/events'
+    | '/history'
     | '/integrations'
     | '/logs'
     | '/opportunities'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/_authenticated/collectors'
     | '/_authenticated/dashboard'
     | '/_authenticated/events'
+    | '/_authenticated/history'
     | '/_authenticated/integrations'
     | '/_authenticated/logs'
     | '/_authenticated/opportunities'
@@ -201,6 +213,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIntegrationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/history': {
+      id: '/_authenticated/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AuthenticatedHistoryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/events': {
       id: '/_authenticated/events'
       path: '/events'
@@ -229,6 +248,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCollectorsRoute: typeof AuthenticatedCollectorsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEventsRoute: typeof AuthenticatedEventsRoute
+  AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedIntegrationsRoute: typeof AuthenticatedIntegrationsRoute
   AuthenticatedLogsRoute: typeof AuthenticatedLogsRoute
   AuthenticatedOpportunitiesRoute: typeof AuthenticatedOpportunitiesRoute
@@ -239,6 +259,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCollectorsRoute: AuthenticatedCollectorsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEventsRoute: AuthenticatedEventsRoute,
+  AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedIntegrationsRoute: AuthenticatedIntegrationsRoute,
   AuthenticatedLogsRoute: AuthenticatedLogsRoute,
   AuthenticatedOpportunitiesRoute: AuthenticatedOpportunitiesRoute,

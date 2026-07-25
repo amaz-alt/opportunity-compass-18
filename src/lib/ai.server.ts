@@ -55,8 +55,16 @@ async function classify(event: RawEvent, profile: OpportunityProfile) {
     ? profile.target.trim()
     : "No specific brief has been set. Use a general founder/PM lens: find actionable pains, buying intent, unmet needs, underserved niches, or competitor gaps.";
 
+  const constraints = [
+    profile.keywords.length ? `Priority keywords / themes: ${profile.keywords.join(", ")}` : null,
+    profile.stages.trim() ? `Target stages: ${profile.stages.trim()}` : null,
+    profile.dealSize.trim() ? `Target deal size / budget: ${profile.dealSize.trim()}` : null,
+    profile.geography.trim() ? `Target geography: ${profile.geography.trim()}` : null,
+  ].filter(Boolean).join("\n");
+
   const userContent = [
     `Saved opportunity brief:\n${brief}`,
+    constraints ? `Hard filters (must match; otherwise mark is_opportunity=false or score low):\n${constraints}` : null,
     `Minimum relevance score for saving: ${profile.minimumScore}`,
     `Platform: ${event.platform}`,
     event.title ? `Title: ${event.title}` : null,
@@ -108,9 +116,14 @@ async function classify(event: RawEvent, profile: OpportunityProfile) {
   };
 }
 
-export async function processRawEvents(supabase: SupabaseLike, limit: number) {
-  const profile = await getOpportunityProfileValue(supabase);
+export async function processRawEvents(
+  supabase: SupabaseLike,
+  limit: number,
+  opts?: { collectorId?: string | null; profile?: OpportunityProfile; onProgress?: (done: number, total: number) => void | Promise<void> },
+) {
+  const profile = opts?.profile ?? (await getOpportunityProfileValue(supabase, opts?.collectorId));
   const boundedLimit = Math.max(1, Math.min(50, limit));
+
 
   const { data: events, error: selErr } = await supabase
     .from("raw_events")
@@ -128,6 +141,9 @@ export async function processRawEvents(supabase: SupabaseLike, limit: number) {
     minimumScore: profile.minimumScore,
     target: profile.target,
   };
+
+  const total = (events ?? []).length;
+  let done = 0;
 
   for (const ev of (events ?? []) as RawEvent[]) {
     const { data: job } = await supabase
@@ -171,6 +187,9 @@ export async function processRawEvents(supabase: SupabaseLike, limit: number) {
       if (job?.id) {
         await supabase.from("ai_jobs").update({ status: "failed", error: msg, completed_at: new Date().toISOString() }).eq("id", job.id);
       }
+    } finally {
+      done++;
+      if (opts?.onProgress) await opts.onProgress(done, total);
     }
   }
 

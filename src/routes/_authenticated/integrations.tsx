@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/PageHeader";
 import { toast } from "sonner";
 import {
@@ -19,8 +20,9 @@ import {
   runProductHuntSync,
   runProductHuntAutomationNow,
 } from "@/lib/producthunt.functions";
-import { updateOpportunityProfile } from "@/lib/opportunity-profile.functions";
-import { CheckCircle2, XCircle, Loader2, PlayCircle, Plug, RefreshCw, KeyRound } from "lucide-react";
+import { updateOpportunityProfile, getOpportunityProfile } from "@/lib/opportunity-profile.functions";
+import { getLatestAutomationRun } from "@/lib/automation-runs.functions";
+import { CheckCircle2, XCircle, Loader2, PlayCircle, Plug, RefreshCw, KeyRound, Zap } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export const Route = createFileRoute("/_authenticated/integrations")({ component: IntegrationsPage });
@@ -45,8 +47,20 @@ function IntegrationsPage() {
   const [commentsPerPost, setComments] = useState(25);
   const [enabled, setEnabled] = useState(false);
   const [target, setTarget] = useState("");
+  const [keywords, setKeywords] = useState("");
+  const [stages, setStages] = useState("");
+  const [dealSize, setDealSize] = useState("");
+  const [geography, setGeography] = useState("");
   const [minimumScore, setMinimumScore] = useState(65);
   const [autoProcessLimit, setAutoProcessLimit] = useState(50);
+
+  const collectorId = data?.collector.id;
+  const getProfile = useServerFn(getOpportunityProfile);
+  const { data: scopedProfile } = useQuery({
+    queryKey: ["opportunity-profile", collectorId],
+    enabled: Boolean(collectorId),
+    queryFn: () => getProfile({ data: { collectorId } }),
+  });
 
   useEffect(() => {
     if (!data) return;
@@ -54,10 +68,19 @@ function IntegrationsPage() {
     setPosts(data.config.postsPerSync ?? 20);
     setComments(data.config.commentsPerPost ?? 25);
     setEnabled(Boolean(data.collector.enabled));
-    setTarget(data.opportunityProfile.target ?? "");
-    setMinimumScore(data.opportunityProfile.minimumScore ?? 65);
-    setAutoProcessLimit(data.opportunityProfile.autoProcessLimit ?? 50);
   }, [data]);
+
+  useEffect(() => {
+    const p = scopedProfile ?? data?.opportunityProfile;
+    if (!p) return;
+    setTarget(p.target ?? "");
+    setKeywords(Array.isArray(p.keywords) ? p.keywords.join(", ") : "");
+    setStages(p.stages ?? "");
+    setDealSize(p.dealSize ?? "");
+    setGeography(p.geography ?? "");
+    setMinimumScore(p.minimumScore ?? 65);
+    setAutoProcessLimit(p.autoProcessLimit ?? 50);
+  }, [scopedProfile, data]);
 
   const save = useMutation({
     mutationFn: () => updateSettings({ data: { pollIntervalMinutes, postsPerSync, commentsPerPost, enabled } }),
@@ -86,8 +109,18 @@ function IntegrationsPage() {
   });
 
   const profile = useMutation({
-    mutationFn: () => saveProfile({ data: { target, minimumScore, autoProcessLimit } }),
-    onSuccess: () => { toast.success("Opportunity brief saved"); qc.invalidateQueries({ queryKey: ["ph-integration"] }); },
+    mutationFn: () => saveProfile({ data: {
+      collectorId,
+      target,
+      keywords: keywords.split(",").map(s => s.trim()).filter(Boolean),
+      stages, dealSize, geography,
+      minimumScore, autoProcessLimit,
+    } }),
+    onSuccess: () => {
+      toast.success("Opportunity target saved");
+      qc.invalidateQueries({ queryKey: ["opportunity-profile", collectorId] });
+      qc.invalidateQueries({ queryKey: ["ph-integration"] });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -99,6 +132,19 @@ function IntegrationsPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const getLatestRun = useServerFn(getLatestAutomationRun);
+  const { data: latestRun } = useQuery<Awaited<ReturnType<typeof getLatestAutomationRun>>>({
+    queryKey: ["latest-run", collectorId],
+    enabled: Boolean(collectorId),
+    queryFn: () => getLatestRun({ data: { collectorId } }),
+    refetchInterval: (q) => {
+      const r = q.state.data;
+      return automation.isPending || r?.status === "running" ? 1500 : 8000;
+    },
+  });
+
+
 
   const { data: logs } = useQuery({
     queryKey: ["ph-logs", data?.collector.id],
@@ -175,16 +221,36 @@ function IntegrationsPage() {
 
           <div className="rounded-md border border-border p-4 space-y-4">
             <div>
-              <div className="text-sm font-medium">Opportunity brief</div>
-              <div className="text-xs text-muted-foreground">AI only saves opportunities that match this target and meet the score threshold.</div>
+              <div className="text-sm font-medium">Opportunity target</div>
+              <div className="text-xs text-muted-foreground">Saved per integration. The AI uses these as hard filters when evaluating events.</div>
             </div>
-            <Textarea
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-              rows={5}
-              placeholder="Example: Find B2B SaaS ideas for small agencies: painful manual workflows, expensive tools people complain about, buying intent, integration gaps, or underserved niches."
-            />
+            <div className="space-y-1.5">
+              <Label htmlFor="brief">Brief</Label>
+              <Textarea
+                id="brief"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+                rows={5}
+                placeholder="Example: B2B SaaS ideas for small agencies — painful manual workflows, expensive tools people complain about, buying intent, integration gaps, or underserved niches."
+              />
+            </div>
             <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="keywords">Keywords (comma-separated)</Label>
+                <Input id="keywords" value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="crm, invoicing, notion alternative" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="stages">Stages</Label>
+                <Input id="stages" value={stages} onChange={(e) => setStages(e.target.value)} placeholder="pre-seed, seed, indie hackers" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="deal-size">Deal size / budget</Label>
+                <Input id="deal-size" value={dealSize} onChange={(e) => setDealSize(e.target.value)} placeholder="$50-$500/mo SMB budgets" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="geography">Geography</Label>
+                <Input id="geography" value={geography} onChange={(e) => setGeography(e.target.value)} placeholder="US, EU, English-speaking markets" />
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="min-score">Minimum opportunity score</Label>
                 <Input id="min-score" type="number" min={0} max={100} value={minimumScore} onChange={(e) => setMinimumScore(Number(e.target.value))} />
@@ -196,14 +262,52 @@ function IntegrationsPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="secondary" onClick={() => profile.mutate()} disabled={profile.isPending}>
-                {profile.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save opportunity brief
+                {profile.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save opportunity target
               </Button>
-              <Button onClick={() => automation.mutate()} disabled={automation.isPending || !data?.tokenPresent}>
-                {automation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              <Button onClick={() => automation.mutate()} disabled={automation.isPending || latestRun?.status === "running" || !data?.tokenPresent}>
+                {automation.isPending || latestRun?.status === "running" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Zap className="h-4 w-4 mr-2" />}
                 Run full cycle now
               </Button>
+              <Button asChild variant="ghost">
+                <Link to="/history">View history</Link>
+              </Button>
             </div>
+
+            {latestRun && (
+              <div className="rounded-md border border-border/70 bg-muted/30 p-3 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={latestRun.status === "running" ? "default" : latestRun.status === "succeeded" ? "secondary" : "destructive"} className="capitalize">
+                      {latestRun.status}
+                    </Badge>
+                    {latestRun.status === "running" && latestRun.stage && (
+                      <span className="text-muted-foreground capitalize">stage: {latestRun.stage}</span>
+                    )}
+                    <span className="text-muted-foreground">
+                      {formatDistanceToNow(new Date(latestRun.started_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                  <div className="font-mono text-muted-foreground">
+                    synced {latestRun.events_synced} · processed {latestRun.events_processed} · opps {latestRun.opportunities_created}
+                  </div>
+                </div>
+                {latestRun.status === "running" && (
+                  <Progress
+                    value={
+                      latestRun.stage === "sync" ? 25 :
+                      latestRun.stage === "ai" && autoProcessLimit > 0
+                        ? 30 + Math.min(65, (latestRun.events_processed / autoProcessLimit) * 65)
+                        : 95
+                    }
+                  />
+                )}
+                {latestRun.error_message && (
+                  <div className="text-xs text-destructive break-all">{latestRun.error_message}</div>
+                )}
+              </div>
+            )}
           </div>
+
 
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => save.mutate()} disabled={save.isPending}>
