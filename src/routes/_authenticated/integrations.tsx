@@ -134,15 +134,16 @@ function IntegrationsPage() {
   });
 
   const getLatestRun = useServerFn(getLatestAutomationRun);
-  const { data: latestRun } = useQuery({
+  const { data: latestRun } = useQuery<Awaited<ReturnType<typeof getLatestAutomationRun>>>({
     queryKey: ["latest-run", collectorId],
     enabled: Boolean(collectorId),
     queryFn: () => getLatestRun({ data: { collectorId } }),
-    refetchInterval: automation.isPending || latestRunIsActive() ? 1500 : 8000,
+    refetchInterval: (q) => {
+      const r = q.state.data;
+      return automation.isPending || r?.status === "running" ? 1500 : 8000;
+    },
   });
-  function latestRunIsActive() {
-    return latestRun?.status === "running";
-  }
+
 
 
   const { data: logs } = useQuery({
