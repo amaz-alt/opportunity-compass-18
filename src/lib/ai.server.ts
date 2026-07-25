@@ -116,9 +116,14 @@ async function classify(event: RawEvent, profile: OpportunityProfile) {
   };
 }
 
-export async function processRawEvents(supabase: SupabaseLike, limit: number) {
-  const profile = await getOpportunityProfileValue(supabase);
+export async function processRawEvents(
+  supabase: SupabaseLike,
+  limit: number,
+  opts?: { collectorId?: string | null; profile?: OpportunityProfile; onProgress?: (done: number, total: number) => void | Promise<void> },
+) {
+  const profile = opts?.profile ?? (await getOpportunityProfileValue(supabase, opts?.collectorId));
   const boundedLimit = Math.max(1, Math.min(50, limit));
+
 
   const { data: events, error: selErr } = await supabase
     .from("raw_events")
