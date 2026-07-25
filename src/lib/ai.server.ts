@@ -142,6 +142,9 @@ export async function processRawEvents(
     target: profile.target,
   };
 
+  const total = (events ?? []).length;
+  let done = 0;
+
   for (const ev of (events ?? []) as RawEvent[]) {
     const { data: job } = await supabase
       .from("ai_jobs")
@@ -184,6 +187,9 @@ export async function processRawEvents(
       if (job?.id) {
         await supabase.from("ai_jobs").update({ status: "failed", error: msg, completed_at: new Date().toISOString() }).eq("id", job.id);
       }
+    } finally {
+      done++;
+      if (opts?.onProgress) await opts.onProgress(done, total);
     }
   }
 
