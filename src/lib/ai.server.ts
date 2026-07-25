@@ -55,8 +55,16 @@ async function classify(event: RawEvent, profile: OpportunityProfile) {
     ? profile.target.trim()
     : "No specific brief has been set. Use a general founder/PM lens: find actionable pains, buying intent, unmet needs, underserved niches, or competitor gaps.";
 
+  const constraints = [
+    profile.keywords.length ? `Priority keywords / themes: ${profile.keywords.join(", ")}` : null,
+    profile.stages.trim() ? `Target stages: ${profile.stages.trim()}` : null,
+    profile.dealSize.trim() ? `Target deal size / budget: ${profile.dealSize.trim()}` : null,
+    profile.geography.trim() ? `Target geography: ${profile.geography.trim()}` : null,
+  ].filter(Boolean).join("\n");
+
   const userContent = [
     `Saved opportunity brief:\n${brief}`,
+    constraints ? `Hard filters (must match; otherwise mark is_opportunity=false or score low):\n${constraints}` : null,
     `Minimum relevance score for saving: ${profile.minimumScore}`,
     `Platform: ${event.platform}`,
     event.title ? `Title: ${event.title}` : null,
