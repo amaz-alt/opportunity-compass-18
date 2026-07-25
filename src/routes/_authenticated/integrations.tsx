@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/PageHeader";
 import { toast } from "sonner";
 import {
@@ -19,8 +20,9 @@ import {
   runProductHuntSync,
   runProductHuntAutomationNow,
 } from "@/lib/producthunt.functions";
-import { updateOpportunityProfile } from "@/lib/opportunity-profile.functions";
-import { CheckCircle2, XCircle, Loader2, PlayCircle, Plug, RefreshCw, KeyRound } from "lucide-react";
+import { updateOpportunityProfile, getOpportunityProfile } from "@/lib/opportunity-profile.functions";
+import { getLatestAutomationRun } from "@/lib/automation-runs.functions";
+import { CheckCircle2, XCircle, Loader2, PlayCircle, Plug, RefreshCw, KeyRound, Zap } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export const Route = createFileRoute("/_authenticated/integrations")({ component: IntegrationsPage });
