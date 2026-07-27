@@ -312,6 +312,7 @@ export async function runProductHuntAutomation(
 ) {
   const collector = await ensureProductHuntCollector(supabase);
   const profile = await getOpportunityProfileValue(supabase, collector.id);
+  const due = isProductHuntDue(collector);
 
   const { data: runRow, error: runErr } = await supabase
     .from("automation_runs")
@@ -327,11 +328,17 @@ export async function runProductHuntAutomation(
   const runId = runRow.id as string;
 
   try {
-    const sync = await runProductHuntSyncCore(supabase, token);
+    let sync: Awaited<ReturnType<typeof runProductHuntSyncCore>>;
+    if (trigger === "scheduled" && !due.due) {
+      sync = { ok: true, postsFetched: 0, postsInserted: 0, commentsFetched: 0, commentsInserted: 0, skipped: 0 };
+    } else {
+      sync = await runProductHuntSyncCore(supabase, token);
+    }
+
     await supabase.from("automation_runs").update({
       stage: "ai",
       events_synced: (sync.postsInserted ?? 0) + (sync.commentsInserted ?? 0),
-      details: { sync },
+      details: { sync, due },
     }).eq("id", runId);
 
     const ai = await processRawEvents(supabase, profile.autoProcessLimit, {
@@ -351,14 +358,14 @@ export async function runProductHuntAutomation(
       opportunities_created: ai.opportunities,
       errors: ai.failed + (sync.ok ? 0 : 1),
       error_message: !sync.ok && "error" in sync ? String((sync as { error?: string }).error ?? "") : null,
-      details: { sync, ai },
+      details: { sync, ai, due },
     }).eq("id", runId);
 
     await supabase.from("collector_logs").insert({
       collector_id: collector.id,
       level: status === "succeeded" ? "info" : "warn",
       message: "Automation cycle completed",
-      metadata: { runId, sync, ai },
+      metadata: { runId, sync, ai, due },
     });
 
     return { ok: sync.ok, runId, sync, ai };
