@@ -124,7 +124,6 @@ export async function processRawEvents(
   const profile = opts?.profile ?? (await getOpportunityProfileValue(supabase, opts?.collectorId));
   const boundedLimit = Math.max(1, Math.min(50, limit));
 
-
   const { data: events, error: selErr } = await supabase
     .from("raw_events")
     .select("id, platform, title, content, author, source_url, metadata")
@@ -194,6 +193,43 @@ export async function processRawEvents(
   }
 
   return results;
+}
+
+export async function reprocessRawEvents(
+  supabase: SupabaseLike,
+  limit: number,
+  opts?: { collectorId?: string | null; profile?: OpportunityProfile; onProgress?: (done: number, total: number) => void | Promise<void> },
+) {
+  const boundedLimit = Math.max(1, Math.min(50, limit));
+
+  const { data: oppRows, error: oppErr } = await supabase
+    .from("opportunities")
+    .select("raw_event_id")
+    .not("raw_event_id", "is", null);
+  if (oppErr) throw new Error(oppErr.message);
+
+  const oppIds = new Set((oppRows ?? []).map((o) => o.raw_event_id).filter(Boolean));
+
+  const { data: rows, error: selErr } = await supabase
+    .from("raw_events")
+    .select("id")
+    .eq("processed", true)
+    .order("collected_at", { ascending: false })
+    .limit(boundedLimit);
+  if (selErr) throw new Error(selErr.message);
+
+  const ids = (rows ?? []).map((r) => r.id).filter((id) => !oppIds.has(id));
+
+  if (ids.length === 0) return { reset: 0 };
+
+  const { error: updErr } = await supabase
+    .from("raw_events")
+    .update({ processed: false })
+    .in("id", ids);
+  if (updErr) throw new Error(updErr.message);
+
+  const ai = await processRawEvents(supabase, ids.length, opts);
+  return { reset: ids.length, ...ai };
 }
 
 export { MODEL as AI_MODEL };
