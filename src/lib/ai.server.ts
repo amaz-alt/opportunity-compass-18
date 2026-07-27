@@ -208,7 +208,7 @@ export async function reprocessRawEvents(
     .not("raw_event_id", "is", null);
   if (oppErr) throw new Error(oppErr.message);
 
-  const oppIds = new Set((oppRows ?? []).map((o) => o.raw_event_id).filter(Boolean));
+  const oppIds = new Set<string>((oppRows ?? []).map((o: { raw_event_id: string | null }) => o.raw_event_id).filter(Boolean));
 
   const { data: rows, error: selErr } = await supabase
     .from("raw_events")
@@ -218,7 +218,7 @@ export async function reprocessRawEvents(
     .limit(boundedLimit);
   if (selErr) throw new Error(selErr.message);
 
-  const ids = (rows ?? []).map((r) => r.id).filter((id) => !oppIds.has(id));
+  const ids = (rows ?? []).map((r: { id: string }) => r.id).filter((id: string) => !oppIds.has(id));
 
   if (ids.length === 0) return { reset: 0 };
 
