@@ -330,7 +330,7 @@ export async function runProductHuntAutomation(
   try {
     let sync: Awaited<ReturnType<typeof runProductHuntSyncCore>>;
     if (trigger === "scheduled" && !due.due) {
-      sync = { ok: true, postsFetched: 0, postsInserted: 0, commentsFetched: 0, commentsInserted: 0, skipped: 0 };
+      sync = { ok: true as const, startedAt: new Date().toISOString(), finishedAt: new Date().toISOString(), postsFetched: 0, postsInserted: 0, commentsFetched: 0, commentsInserted: 0, checkpoint: undefined };
     } else {
       sync = await runProductHuntSyncCore(supabase, token);
     }
