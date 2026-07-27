@@ -220,7 +220,9 @@ export async function reprocessRawEvents(
 
   const ids = (rows ?? []).map((r: { id: string }) => r.id).filter((id: string) => !oppIds.has(id));
 
-  if (ids.length === 0) return { reset: 0 };
+  if (ids.length === 0) {
+    return { reset: 0, processed: 0, opportunities: 0, skipped: 0, failed: 0, minimumScore: opts?.profile?.minimumScore ?? 65, target: opts?.profile?.target ?? "" };
+  }
 
   const { error: updErr } = await supabase
     .from("raw_events")

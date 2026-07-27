@@ -35,7 +35,7 @@ function IntegrationsPage() {
   const testConn = useServerFn(testProductHuntConnection);
   const runSync = useServerFn(runProductHuntSync);
   const runAutomation = useServerFn(runProductHuntAutomationNow);
-  const reprocess = useServerFn(reprocessAiQueue);
+  const reprocessFn = useServerFn(reprocessAiQueue);
   const saveProfile = useServerFn(updateOpportunityProfile);
 
   const { data, isLoading } = useQuery({
@@ -135,8 +135,8 @@ function IntegrationsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const reprocess = useMutation({
-    mutationFn: ({ limit }: { limit: number }) => reprocess({ data: { limit } }),
+  const reprocessMut = useMutation({
+    mutationFn: ({ limit }: { limit: number }) => reprocessFn({ data: { limit } }),
     onSuccess: (res) => {
       toast.success(`Re-evaluated ${res.reset ?? 0} events → ${res.opportunities ?? 0} opportunities`);
       qc.invalidateQueries();
@@ -293,10 +293,10 @@ function IntegrationsPage() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => reprocess.mutate({ data: { limit: autoProcessLimit } })}
-                disabled={reprocess.isPending || latestRun?.status === "running"}
+                onClick={() => reprocessMut.mutate({ limit: autoProcessLimit })}
+                disabled={reprocessMut.isPending || latestRun?.status === "running"}
               >
-                {reprocess.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
+                {reprocessMut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
                 Re-evaluate past events
               </Button>
               <Button asChild variant="ghost">
