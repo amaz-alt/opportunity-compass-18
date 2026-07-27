@@ -47,7 +47,7 @@ function OppsPage() {
 
       {filtered.length === 0 ? (
         <Card className="border-border"><CardContent className="py-16 text-center text-sm text-muted-foreground">
-          No opportunities yet. The AI pipeline populates this once raw events are processed.
+          No opportunities yet. Set your Opportunity target on the Integrations page, then run “Run full cycle now” or “Re-evaluate past events”.
         </CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { processRawEvents } from "./ai.server";
+import { processRawEvents, reprocessRawEvents } from "./ai.server";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Ctx = { supabase: any; userId: string };
@@ -18,4 +18,12 @@ export const processAiQueue = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     return processRawEvents(context.supabase, data.limit);
+  });
+
+export const reprocessAiQueue = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ limit: z.number().int().min(1).max(50).default(10) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    return reprocessRawEvents(context.supabase, data.limit);
   });

@@ -1,4 +1,6 @@
 import crypto from "node:crypto";
+import { processRawEvents } from "./ai.server";
+import { getOpportunityProfileValue } from "./opportunity-profile.server";
 
 const PLATFORM = "producthunt";
 const COLLECTOR_NAME = "Product Hunt";
@@ -301,6 +303,83 @@ export function isProductHuntDue(collector: { enabled: boolean; status?: string 
   if (!collector.last_run_at) return { due: true, reason: "never run" };
   const elapsed = Date.now() - new Date(collector.last_run_at).getTime();
   return elapsed >= intervalMs ? { due: true, reason: "poll interval elapsed" } : { due: false, reason: "poll interval not reached" };
+}
+
+export async function runProductHuntAutomation(
+  supabase: SupabaseLike,
+  token: string | undefined,
+  trigger: "manual" | "scheduled",
+) {
+  const collector = await ensureProductHuntCollector(supabase);
+  const profile = await getOpportunityProfileValue(supabase, collector.id);
+  const due = isProductHuntDue(collector);
+
+  const { data: runRow, error: runErr } = await supabase
+    .from("automation_runs")
+    .insert({
+      collector_id: collector.id,
+      trigger,
+      status: "running",
+      stage: "sync",
+    })
+    .select("id")
+    .single();
+  if (runErr) throw new Error(runErr.message);
+  const runId = runRow.id as string;
+
+  try {
+    let sync: Awaited<ReturnType<typeof runProductHuntSyncCore>>;
+    if (trigger === "scheduled" && !due.due) {
+      sync = { ok: true as const, startedAt: new Date().toISOString(), finishedAt: new Date().toISOString(), postsFetched: 0, postsInserted: 0, commentsFetched: 0, commentsInserted: 0, checkpoint: undefined };
+    } else {
+      sync = await runProductHuntSyncCore(supabase, token);
+    }
+
+    await supabase.from("automation_runs").update({
+      stage: "ai",
+      events_synced: (sync.postsInserted ?? 0) + (sync.commentsInserted ?? 0),
+      details: { sync, due },
+    }).eq("id", runId);
+
+    const ai = await processRawEvents(supabase, profile.autoProcessLimit, {
+      collectorId: collector.id,
+      profile,
+      onProgress: async (done) => {
+        await supabase.from("automation_runs").update({ events_processed: done }).eq("id", runId);
+      },
+    });
+
+    const status = sync.ok && ai.failed === 0 ? "succeeded" : "failed";
+    await supabase.from("automation_runs").update({
+      status,
+      stage: "done",
+      completed_at: new Date().toISOString(),
+      events_processed: ai.processed,
+      opportunities_created: ai.opportunities,
+      errors: ai.failed + (sync.ok ? 0 : 1),
+      error_message: !sync.ok && "error" in sync ? String((sync as { error?: string }).error ?? "") : null,
+      details: { sync, ai, due },
+    }).eq("id", runId);
+
+    await supabase.from("collector_logs").insert({
+      collector_id: collector.id,
+      level: status === "succeeded" ? "info" : "warn",
+      message: "Automation cycle completed",
+      metadata: { runId, sync, ai, due },
+    });
+
+    return { ok: sync.ok, runId, sync, ai };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    await supabase.from("automation_runs").update({
+      status: "failed",
+      stage: "error",
+      completed_at: new Date().toISOString(),
+      error_message: msg,
+      errors: 1,
+    }).eq("id", runId);
+    throw err;
+  }
 }
 
 export { PLATFORM as PRODUCT_HUNT_PLATFORM };
