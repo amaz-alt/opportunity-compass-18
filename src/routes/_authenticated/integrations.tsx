@@ -21,8 +21,9 @@ import {
   runProductHuntAutomationNow,
 } from "@/lib/producthunt.functions";
 import { updateOpportunityProfile, getOpportunityProfile } from "@/lib/opportunity-profile.functions";
+import { reprocessAiQueue } from "@/lib/ai.functions";
 import { getLatestAutomationRun } from "@/lib/automation-runs.functions";
-import { CheckCircle2, XCircle, Loader2, PlayCircle, Plug, RefreshCw, KeyRound, Zap } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, PlayCircle, Plug, RefreshCw, KeyRound, Zap, AlertTriangle, RotateCcw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export const Route = createFileRoute("/_authenticated/integrations")({ component: IntegrationsPage });
@@ -34,6 +35,7 @@ function IntegrationsPage() {
   const testConn = useServerFn(testProductHuntConnection);
   const runSync = useServerFn(runProductHuntSync);
   const runAutomation = useServerFn(runProductHuntAutomationNow);
+  const reprocess = useServerFn(reprocessAiQueue);
   const saveProfile = useServerFn(updateOpportunityProfile);
 
   const { data, isLoading } = useQuery({
@@ -133,6 +135,15 @@ function IntegrationsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const reprocess = useMutation({
+    mutationFn: ({ limit }: { limit: number }) => reprocess({ data: { limit } }),
+    onSuccess: (res) => {
+      toast.success(`Re-evaluated ${res.reset ?? 0} events → ${res.opportunities ?? 0} opportunities`);
+      qc.invalidateQueries();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const getLatestRun = useServerFn(getLatestAutomationRun);
   const { data: latestRun } = useQuery<Awaited<ReturnType<typeof getLatestAutomationRun>>>({
     queryKey: ["latest-run", collectorId],
@@ -220,10 +231,22 @@ function IntegrationsPage() {
           </div>
 
           <div className="rounded-md border border-border p-4 space-y-4">
-            <div>
-              <div className="text-sm font-medium">Opportunity target</div>
-              <div className="text-xs text-muted-foreground">Saved per integration. The AI uses these as hard filters when evaluating events.</div>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-medium">Opportunity target</div>
+                <div className="text-xs text-muted-foreground">Saved per integration. The AI uses these as hard filters when evaluating events.</div>
+              </div>
             </div>
+
+            {!target.trim() && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-medium text-amber-600 dark:text-amber-400">Brief is empty</div>
+                  <div className="text-muted-foreground">The AI needs a target brief to find relevant opportunities. Fill in the brief above before running a cycle.</div>
+                </div>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="brief">Brief</Label>
               <Textarea
@@ -267,6 +290,14 @@ function IntegrationsPage() {
               <Button onClick={() => automation.mutate()} disabled={automation.isPending || latestRun?.status === "running" || !data?.tokenPresent}>
                 {automation.isPending || latestRun?.status === "running" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Zap className="h-4 w-4 mr-2" />}
                 Run full cycle now
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => reprocess.mutate({ data: { limit: autoProcessLimit } })}
+                disabled={reprocess.isPending || latestRun?.status === "running"}
+              >
+                {reprocess.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
+                Re-evaluate past events
               </Button>
               <Button asChild variant="ghost">
                 <Link to="/history">View history</Link>

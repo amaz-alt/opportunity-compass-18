@@ -52,7 +52,7 @@ function Dashboard() {
           <CardContent>
             {(recentOpps ?? []).length === 0 ? (
               <div className="text-sm text-muted-foreground py-8 text-center">
-                No opportunities yet. Collectors on your VPS will populate this feed.
+                No opportunities yet. Go to Integrations, set your Opportunity target, then run “Run full cycle now”.
               </div>
             ) : (
               <div className="space-y-3">
