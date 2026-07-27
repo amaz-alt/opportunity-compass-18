@@ -20,6 +20,7 @@ import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedEventsRouteImport } from './routes/_authenticated/events'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCollectorsRouteImport } from './routes/_authenticated/collectors'
+import { Route as ApiPublicJobsProducthuntAutomationRouteImport } from './routes/api/public/jobs/producthunt-automation'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -77,6 +78,12 @@ const AuthenticatedCollectorsRoute = AuthenticatedCollectorsRouteImport.update({
   path: '/collectors',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicJobsProducthuntAutomationRoute =
+  ApiPublicJobsProducthuntAutomationRouteImport.update({
+    id: '/api/public/jobs/producthunt-automation',
+    path: '/api/public/jobs/producthunt-automation',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/logs': typeof AuthenticatedLogsRoute
   '/opportunities': typeof AuthenticatedOpportunitiesRoute
   '/queue': typeof AuthenticatedQueueRoute
+  '/api/public/jobs/producthunt-automation': typeof ApiPublicJobsProducthuntAutomationRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -101,6 +109,7 @@ export interface FileRoutesByTo {
   '/logs': typeof AuthenticatedLogsRoute
   '/opportunities': typeof AuthenticatedOpportunitiesRoute
   '/queue': typeof AuthenticatedQueueRoute
+  '/api/public/jobs/producthunt-automation': typeof ApiPublicJobsProducthuntAutomationRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -115,6 +124,7 @@ export interface FileRoutesById {
   '/_authenticated/logs': typeof AuthenticatedLogsRoute
   '/_authenticated/opportunities': typeof AuthenticatedOpportunitiesRoute
   '/_authenticated/queue': typeof AuthenticatedQueueRoute
+  '/api/public/jobs/producthunt-automation': typeof ApiPublicJobsProducthuntAutomationRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -129,6 +139,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/opportunities'
     | '/queue'
+    | '/api/public/jobs/producthunt-automation'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -141,6 +152,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/opportunities'
     | '/queue'
+    | '/api/public/jobs/producthunt-automation'
   id:
     | '__root__'
     | '/'
@@ -154,12 +166,14 @@ export interface FileRouteTypes {
     | '/_authenticated/logs'
     | '/_authenticated/opportunities'
     | '/_authenticated/queue'
+    | '/api/public/jobs/producthunt-automation'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicJobsProducthuntAutomationRoute: typeof ApiPublicJobsProducthuntAutomationRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -241,6 +255,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCollectorsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/jobs/producthunt-automation': {
+      id: '/api/public/jobs/producthunt-automation'
+      path: '/api/public/jobs/producthunt-automation'
+      fullPath: '/api/public/jobs/producthunt-automation'
+      preLoaderRoute: typeof ApiPublicJobsProducthuntAutomationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -273,6 +294,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicJobsProducthuntAutomationRoute:
+    ApiPublicJobsProducthuntAutomationRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
