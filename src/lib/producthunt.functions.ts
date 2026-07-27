@@ -1,13 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { processRawEvents } from "./ai.server";
-import { getOpportunityProfileValue } from "./opportunity-profile.server";
 import {
   ensureProductHuntCollector,
   isProductHuntDue,
   PRODUCT_HUNT_DEFAULTS,
   runProductHuntSyncCore,
+  runProductHuntAutomation,
   testProductHuntToken,
   type ProductHuntConfig,
 } from "./producthunt.server";
