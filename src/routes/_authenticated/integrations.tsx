@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/PageHeader";
+import { SourceIntegrationCard } from "@/components/SourceIntegrationCard";
 import { toast } from "sonner";
 import {
   getProductHuntIntegration,
@@ -393,6 +394,10 @@ function IntegrationsPage() {
           )}
         </CardContent>
       </Card>
+
+      <SourceIntegrationCard platform="hackernews" />
+      <SourceIntegrationCard platform="g2" />
+      <SourceIntegrationCard platform="capterra" />
 
       <Card>
         <CardHeader>
