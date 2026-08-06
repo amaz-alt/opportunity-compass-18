@@ -259,12 +259,17 @@ function normalizeReviewChunk(collectorId: string, platform: SourcePlatform, url
 /* Sync                                                                 */
 /* ------------------------------------------------------------------ */
 
+export type SourceSyncDetails = Record<
+  string,
+  string | number | boolean | null | string[] | Record<string, number | null>
+>;
+
 export type SourceSyncResult = {
   ok: boolean;
   error?: string;
   fetched: number;
   inserted: number;
-  details?: Record<string, unknown>;
+  details?: SourceSyncDetails;
 };
 
 export async function runSourceSync(supabase: SupabaseLike, platform: SourcePlatform): Promise<SourceSyncResult> {
@@ -278,7 +283,7 @@ export async function runSourceSync(supabase: SupabaseLike, platform: SourcePlat
 
   let fetched = 0;
   let inserted = 0;
-  const details: Record<string, unknown> = {};
+  const details: SourceSyncDetails = {};
 
   try {
     let rows: Array<Record<string, unknown>> = [];
