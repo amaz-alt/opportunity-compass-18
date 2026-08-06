@@ -20,6 +20,7 @@ import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedEventsRouteImport } from './routes/_authenticated/events'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCollectorsRouteImport } from './routes/_authenticated/collectors'
+import { Route as ApiPublicJobsSourcesAutomationRouteImport } from './routes/api/public/jobs/sources-automation'
 import { Route as ApiPublicJobsProducthuntAutomationRouteImport } from './routes/api/public/jobs/producthunt-automation'
 
 const AuthRoute = AuthRouteImport.update({
@@ -78,6 +79,12 @@ const AuthenticatedCollectorsRoute = AuthenticatedCollectorsRouteImport.update({
   path: '/collectors',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicJobsSourcesAutomationRoute =
+  ApiPublicJobsSourcesAutomationRouteImport.update({
+    id: '/api/public/jobs/sources-automation',
+    path: '/api/public/jobs/sources-automation',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicJobsProducthuntAutomationRoute =
   ApiPublicJobsProducthuntAutomationRouteImport.update({
     id: '/api/public/jobs/producthunt-automation',
@@ -97,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/opportunities': typeof AuthenticatedOpportunitiesRoute
   '/queue': typeof AuthenticatedQueueRoute
   '/api/public/jobs/producthunt-automation': typeof ApiPublicJobsProducthuntAutomationRoute
+  '/api/public/jobs/sources-automation': typeof ApiPublicJobsSourcesAutomationRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -110,6 +118,7 @@ export interface FileRoutesByTo {
   '/opportunities': typeof AuthenticatedOpportunitiesRoute
   '/queue': typeof AuthenticatedQueueRoute
   '/api/public/jobs/producthunt-automation': typeof ApiPublicJobsProducthuntAutomationRoute
+  '/api/public/jobs/sources-automation': typeof ApiPublicJobsSourcesAutomationRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -125,6 +134,7 @@ export interface FileRoutesById {
   '/_authenticated/opportunities': typeof AuthenticatedOpportunitiesRoute
   '/_authenticated/queue': typeof AuthenticatedQueueRoute
   '/api/public/jobs/producthunt-automation': typeof ApiPublicJobsProducthuntAutomationRoute
+  '/api/public/jobs/sources-automation': typeof ApiPublicJobsSourcesAutomationRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
     | '/opportunities'
     | '/queue'
     | '/api/public/jobs/producthunt-automation'
+    | '/api/public/jobs/sources-automation'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -153,6 +164,7 @@ export interface FileRouteTypes {
     | '/opportunities'
     | '/queue'
     | '/api/public/jobs/producthunt-automation'
+    | '/api/public/jobs/sources-automation'
   id:
     | '__root__'
     | '/'
@@ -167,6 +179,7 @@ export interface FileRouteTypes {
     | '/_authenticated/opportunities'
     | '/_authenticated/queue'
     | '/api/public/jobs/producthunt-automation'
+    | '/api/public/jobs/sources-automation'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -174,6 +187,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiPublicJobsProducthuntAutomationRoute: typeof ApiPublicJobsProducthuntAutomationRoute
+  ApiPublicJobsSourcesAutomationRoute: typeof ApiPublicJobsSourcesAutomationRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -255,6 +269,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCollectorsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/jobs/sources-automation': {
+      id: '/api/public/jobs/sources-automation'
+      path: '/api/public/jobs/sources-automation'
+      fullPath: '/api/public/jobs/sources-automation'
+      preLoaderRoute: typeof ApiPublicJobsSourcesAutomationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/jobs/producthunt-automation': {
       id: '/api/public/jobs/producthunt-automation'
       path: '/api/public/jobs/producthunt-automation'
@@ -296,17 +317,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ApiPublicJobsProducthuntAutomationRoute:
     ApiPublicJobsProducthuntAutomationRoute,
+  ApiPublicJobsSourcesAutomationRoute: ApiPublicJobsSourcesAutomationRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
