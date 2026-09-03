@@ -138,7 +138,16 @@ export async function processRawEvents(
     .limit(boundedLimit);
   if (selErr) throw new Error(selErr.message);
 
-  const results = {
+  const results: {
+    processed: number;
+    opportunities: number;
+    skipped: number;
+    failed: number;
+    minimumScore: number;
+    target: string;
+    paused?: boolean;
+    pauseReason?: string;
+  } = {
     processed: 0,
     opportunities: 0,
     skipped: 0,
