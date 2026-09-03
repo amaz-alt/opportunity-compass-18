@@ -47,6 +47,11 @@ An opportunity means at least one of these is present:
 
 Be strict. Generic launches, vague praise, ordinary announcements, and irrelevant products are not opportunities. If the item does not match the saved brief, return is_opportunity=false even if it is interesting.`;
 
+/** Terminal gateway denial (402/403): stop the whole batch, never retry the rest. */
+export class AiBlockedError extends Error {
+  readonly blocked = true;
+}
+
 async function classify(event: RawEvent, profile: OpportunityProfile) {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("Missing LOVABLE_API_KEY");
