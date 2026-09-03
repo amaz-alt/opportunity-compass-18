@@ -98,7 +98,8 @@ async function classify(event: RawEvent, profile: OpportunityProfile) {
   if (!res.ok) {
     const body = await res.text();
     if (res.status === 429) throw new Error("AI rate limit — try again shortly.");
-    if (res.status === 402) throw new Error("AI credits exhausted. Add credits in Settings → Plans & credits.");
+    if (res.status === 402) throw new AiBlockedError("AI credits exhausted. Add credits in Settings → Plans & credits.");
+    if (res.status === 403) throw new AiBlockedError("AI access is blocked for this workspace (admin limit or disabled).");
     throw new Error(`AI gateway ${res.status}: ${body.slice(0, 300)}`);
   }
 
