@@ -47,6 +47,40 @@ An opportunity means at least one of these is present:
 
 Be strict. Generic launches, vague praise, ordinary announcements, and irrelevant products are not opportunities. If the item does not match the saved brief, return is_opportunity=false even if it is interesting.`;
 
+/** Terminal gateway denial (402/403): stop the whole batch, never retry the rest. */
+export class AiBlockedError extends Error {
+  readonly blocked = true;
+}
+
+type AiPauseState = { paused: boolean; reason?: string; pausedAt?: string };
+
+async function getAiPauseState(supabase: SupabaseLike): Promise<AiPauseState> {
+  const { data, error } = await supabase.from("app_settings").select("value").eq("key", "ai_processing_paused").maybeSingle();
+  if (error) throw new Error(error.message);
+  const value = (data?.value ?? {}) as Partial<AiPauseState>;
+  return { paused: value.paused === true, reason: typeof value.reason === "string" ? value.reason : undefined, pausedAt: typeof value.pausedAt === "string" ? value.pausedAt : undefined };
+}
+
+async function setAiPauseState(supabase: SupabaseLike, reason: string) {
+  const { error } = await supabase.from("app_settings").upsert({
+    key: "ai_processing_paused",
+    value: { paused: true, reason, pausedAt: new Date().toISOString() },
+  }, { onConflict: "key" });
+  if (error) throw new Error(error.message);
+}
+
+export async function clearAiPauseState(supabase: SupabaseLike) {
+  const { error } = await supabase.from("app_settings").upsert({
+    key: "ai_processing_paused",
+    value: { paused: false },
+  }, { onConflict: "key" });
+  if (error) throw new Error(error.message);
+}
+
+export async function readAiPauseState(supabase: SupabaseLike) {
+  return getAiPauseState(supabase);
+}
+
 async function classify(event: RawEvent, profile: OpportunityProfile) {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("Missing LOVABLE_API_KEY");
@@ -98,7 +132,8 @@ async function classify(event: RawEvent, profile: OpportunityProfile) {
   if (!res.ok) {
     const body = await res.text();
     if (res.status === 429) throw new Error("AI rate limit — try again shortly.");
-    if (res.status === 402) throw new Error("AI credits exhausted. Add credits in Settings → Plans & credits.");
+    if (res.status === 402) throw new AiBlockedError("AI credits exhausted. Add credits in Settings → Plans & credits.");
+    if (res.status === 403) throw new AiBlockedError("AI access is blocked for this workspace (admin limit or disabled).");
     throw new Error(`AI gateway ${res.status}: ${body.slice(0, 300)}`);
   }
 
@@ -123,6 +158,18 @@ export async function processRawEvents(
 ) {
   const profile = opts?.profile ?? (await getOpportunityProfileValue(supabase, opts?.collectorId));
   const boundedLimit = Math.max(1, Math.min(50, limit));
+  const pauseState = await getAiPauseState(supabase);
+
+  const emptyResults = {
+    processed: 0,
+    opportunities: 0,
+    skipped: 0,
+    failed: 0,
+    minimumScore: profile.minimumScore,
+    target: profile.target,
+    ...(pauseState.paused ? { paused: true, pauseReason: pauseState.reason ?? "AI processing is paused." } : {}),
+  };
+  if (pauseState.paused) return emptyResults;
 
   const { data: events, error: selErr } = await supabase
     .from("raw_events")
@@ -132,7 +179,16 @@ export async function processRawEvents(
     .limit(boundedLimit);
   if (selErr) throw new Error(selErr.message);
 
-  const results = {
+  const results: {
+    processed: number;
+    opportunities: number;
+    skipped: number;
+    failed: number;
+    minimumScore: number;
+    target: string;
+    paused?: boolean;
+    pauseReason?: string;
+  } = {
     processed: 0,
     opportunities: 0,
     skipped: 0,
@@ -185,6 +241,13 @@ export async function processRawEvents(
       const msg = err instanceof Error ? err.message : String(err);
       if (job?.id) {
         await supabase.from("ai_jobs").update({ status: "failed", error: msg, completed_at: new Date().toISOString() }).eq("id", job.id);
+      }
+      if (err instanceof AiBlockedError) {
+        // Persist the circuit breaker so scheduled and manual entry points all stop.
+        await setAiPauseState(supabase, msg);
+        results.paused = true;
+        results.pauseReason = msg;
+        break;
       }
     } finally {
       done++;

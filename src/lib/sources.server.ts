@@ -424,15 +424,15 @@ export async function runSourceAutomation(
       },
     });
 
-    const status = sync.ok && ai.failed === 0 ? "succeeded" : "failed";
+    const status = sync.ok && ai.failed === 0 && !ai.paused ? "succeeded" : "failed";
     await supabase.from("automation_runs").update({
       status,
       stage: "done",
       completed_at: new Date().toISOString(),
       events_processed: ai.processed,
       opportunities_created: ai.opportunities,
-      errors: ai.failed + (sync.ok ? 0 : 1),
-      error_message: sync.ok ? null : sync.error ?? null,
+      errors: ai.failed + (sync.ok ? 0 : 1) + (ai.paused ? 1 : 0),
+      error_message: ai.pauseReason ?? (sync.ok ? null : sync.error ?? null),
       details: { sync, ai, due, platform },
     }).eq("id", runId);
 

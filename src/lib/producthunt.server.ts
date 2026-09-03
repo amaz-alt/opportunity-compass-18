@@ -349,15 +349,15 @@ export async function runProductHuntAutomation(
       },
     });
 
-    const status = sync.ok && ai.failed === 0 ? "succeeded" : "failed";
+    const status = sync.ok && ai.failed === 0 && !ai.paused ? "succeeded" : "failed";
     await supabase.from("automation_runs").update({
       status,
       stage: "done",
       completed_at: new Date().toISOString(),
       events_processed: ai.processed,
       opportunities_created: ai.opportunities,
-      errors: ai.failed + (sync.ok ? 0 : 1),
-      error_message: !sync.ok && "error" in sync ? String((sync as { error?: string }).error ?? "") : null,
+      errors: ai.failed + (sync.ok ? 0 : 1) + (ai.paused ? 1 : 0),
+      error_message: ai.pauseReason ?? (!sync.ok && "error" in sync ? String((sync as { error?: string }).error ?? "") : null),
       details: { sync, ai, due },
     }).eq("id", runId);
 
