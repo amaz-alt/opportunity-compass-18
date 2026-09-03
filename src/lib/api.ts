@@ -68,25 +68,36 @@ export type CollectorLog = {
   created_at: string;
 };
 
+type PauseSetting = { paused?: unknown; reason?: unknown };
+
 export async function fetchStats() {
-  const [collectors, events, jobs, opps] = await Promise.all([
-    supabase.from("collectors").select("id, enabled", { count: "exact" }),
-    supabase.from("raw_events").select("id, processed", { count: "exact", head: false }).limit(5000),
-    supabase.from("ai_jobs").select("id, status", { count: "exact", head: false }).limit(5000),
-    supabase.from("opportunities").select("id, score", { count: "exact", head: false }).limit(5000),
+  const [collectors, events, opportunities, pending, processing, failed, pauseSetting] = await Promise.all([
+    supabase.from("collectors").select("id", { count: "exact", head: true }),
+    supabase.from("raw_events").select("id", { count: "exact", head: true }),
+    supabase.from("opportunities").select("id", { count: "exact", head: true }),
+    supabase.from("raw_events").select("id", { count: "exact", head: true }).eq("processed", false),
+    supabase.from("ai_jobs").select("id", { count: "exact", head: true }).eq("status", "processing"),
+    supabase.from("ai_jobs").select("id", { count: "exact", head: true }).eq("status", "failed"),
+    supabase.from("app_settings").select("value").eq("key", "ai_processing_paused").maybeSingle(),
   ]);
-  const enabledCollectors = (collectors.data ?? []).filter(c => c.enabled).length;
-  const unprocessed = (events.data ?? []).filter(e => !e.processed).length;
-  const pending = (jobs.data ?? []).filter(j => j.status === "pending").length;
-  const processing = (jobs.data ?? []).filter(j => j.status === "processing").length;
+
+  const { count: enabledCount } = await supabase
+    .from("collectors")
+    .select("id", { count: "exact", head: true })
+    .eq("enabled", true);
+
+  const pause = (pauseSetting.data?.value ?? {}) as PauseSetting;
   return {
     collectors: collectors.count ?? 0,
-    enabledCollectors,
+    enabledCollectors: enabledCount ?? 0,
     events: events.count ?? 0,
-    unprocessed,
-    jobsTotal: jobs.count ?? 0,
-    pending,
-    processing,
-    opportunities: opps.count ?? 0,
+    unprocessed: pending.count ?? 0,
+    jobsTotal: (processing.count ?? 0) + (failed.count ?? 0),
+    pending: pending.count ?? 0,
+    processing: processing.count ?? 0,
+    failed: failed.count ?? 0,
+    opportunities: opportunities.count ?? 0,
+    aiPaused: pause.paused === true,
+    aiPauseReason: typeof pause.reason === "string" ? pause.reason : null,
   };
 }
