@@ -192,6 +192,13 @@ export async function processRawEvents(
       if (job?.id) {
         await supabase.from("ai_jobs").update({ status: "failed", error: msg, completed_at: new Date().toISOString() }).eq("id", job.id);
       }
+      if (err instanceof AiBlockedError) {
+        // A workspace-level denial applies to every remaining event in this run.
+        // Stop before creating thousands of duplicate failed jobs.
+        results.paused = true;
+        results.pauseReason = msg;
+        break;
+      }
     } finally {
       done++;
       if (opts?.onProgress) await opts.onProgress(done, total);
