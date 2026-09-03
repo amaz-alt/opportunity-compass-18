@@ -52,6 +52,35 @@ export class AiBlockedError extends Error {
   readonly blocked = true;
 }
 
+type AiPauseState = { paused: boolean; reason?: string; pausedAt?: string };
+
+async function getAiPauseState(supabase: SupabaseLike): Promise<AiPauseState> {
+  const { data, error } = await supabase.from("app_settings").select("value").eq("key", "ai_processing_paused").maybeSingle();
+  if (error) throw new Error(error.message);
+  const value = (data?.value ?? {}) as Partial<AiPauseState>;
+  return { paused: value.paused === true, reason: typeof value.reason === "string" ? value.reason : undefined, pausedAt: typeof value.pausedAt === "string" ? value.pausedAt : undefined };
+}
+
+async function setAiPauseState(supabase: SupabaseLike, reason: string) {
+  const { error } = await supabase.from("app_settings").upsert({
+    key: "ai_processing_paused",
+    value: { paused: true, reason, pausedAt: new Date().toISOString() },
+  }, { onConflict: "key" });
+  if (error) throw new Error(error.message);
+}
+
+export async function clearAiPauseState(supabase: SupabaseLike) {
+  const { error } = await supabase.from("app_settings").upsert({
+    key: "ai_processing_paused",
+    value: { paused: false },
+  }, { onConflict: "key" });
+  if (error) throw new Error(error.message);
+}
+
+export async function readAiPauseState(supabase: SupabaseLike) {
+  return getAiPauseState(supabase);
+}
+
 async function classify(event: RawEvent, profile: OpportunityProfile) {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("Missing LOVABLE_API_KEY");
@@ -129,6 +158,18 @@ export async function processRawEvents(
 ) {
   const profile = opts?.profile ?? (await getOpportunityProfileValue(supabase, opts?.collectorId));
   const boundedLimit = Math.max(1, Math.min(50, limit));
+  const pauseState = await getAiPauseState(supabase);
+
+  const emptyResults = {
+    processed: 0,
+    opportunities: 0,
+    skipped: 0,
+    failed: 0,
+    minimumScore: profile.minimumScore,
+    target: profile.target,
+    ...(pauseState.paused ? { paused: true, pauseReason: pauseState.reason ?? "AI processing is paused." } : {}),
+  };
+  if (pauseState.paused) return emptyResults;
 
   const { data: events, error: selErr } = await supabase
     .from("raw_events")
@@ -202,8 +243,8 @@ export async function processRawEvents(
         await supabase.from("ai_jobs").update({ status: "failed", error: msg, completed_at: new Date().toISOString() }).eq("id", job.id);
       }
       if (err instanceof AiBlockedError) {
-        // A workspace-level denial applies to every remaining event in this run.
-        // Stop before creating thousands of duplicate failed jobs.
+        // Persist the circuit breaker so scheduled and manual entry points all stop.
+        await setAiPauseState(supabase, msg);
         results.paused = true;
         results.pauseReason = msg;
         break;
